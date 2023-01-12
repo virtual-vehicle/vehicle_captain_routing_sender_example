@@ -1,0 +1,69 @@
+# Demo for cpp_sender
+#
+# Authors:
+# - Christoph Pilz
+#
+
+FROM ubuntu:20.04
+
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get -y install tzdata
+
+RUN apt-get update \
+  && apt-get install -y ssh \
+      build-essential \
+      gcc \
+      g++ \
+      gdb \
+      clang \
+      cmake \
+      rsync \
+      tar \
+      python \
+  && apt-get clean
+
+# ZMQ Setup
+RUN apt-get update -qq \
+    && apt-get install -qq --yes --no-install-recommends \
+        autoconf \
+        automake \
+        build-essential \
+        git \
+        libkrb5-dev \
+        libsodium-dev \
+        libtool \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# libzmq
+WORKDIR /opt
+RUN git clone https://github.com/zeromq/libzmq.git
+WORKDIR /opt/libzmq
+RUN git checkout v4.3.4
+RUN ./autogen.sh \
+    && ./configure --prefix=/usr/local --with-libsodium --with-libgssapi_krb5 \
+    && make \
+    && make check \
+    && make install
+RUN apt-get update -qq \
+    && apt-get install -qq --yes --no-install-recommends \
+        libkrb5-dev \
+        libsodium23 \
+    && rm -rf /var/lib/apt/lists/*
+RUN ldconfig && ldconfig -p | grep libzmq
+
+# cppzmq
+WORKDIR /opt
+RUN git clone https://github.com/zeromq/cppzmq.git
+WORKDIR /opt/cppzmq
+RUN git checkout v4.8.0
+WORKDIR /opt/cppzmq/build
+RUN cmake .. \
+    && make install
+# ZMQ Setup - done
+
+# install the demo
+WORKDIR /tmp/demo
+RUN rm -rf *
+COPY . .
+WORKDIR /tmp/demo/build
+RUN cmake .. && make

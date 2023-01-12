@@ -1,0 +1,83 @@
+# CLion remote docker environment (How to build docker container, run and stop it)
+#
+# Build and run:
+# docker build -t clion/lw-remote-cpp-env:0.1 -f Dockerfiles/Dockerfile.remote-cpp-env .
+# docker run -d --cap-add sys_ptrace -p127.0.0.1:2222:22 --name cpp-receiver clion/lw-remote-cpp-env:0.1
+# ssh-keygen -f "$HOME/.ssh/known_hosts" -R "[localhost]:2222"
+#
+# stop:
+#   docker stop clion_remote_env
+#
+# ssh credentials (test user):
+#   user@password
+
+FROM ubuntu:20.04
+
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get -y install tzdata
+
+RUN apt-get update \
+  && apt-get install -y ssh \
+      build-essential \
+      gcc \
+      g++ \
+      gdb \
+      clang \
+      cmake \
+      rsync \
+      tar \
+      python \
+  && apt-get clean
+
+# ZMQ Setup
+RUN apt-get update -qq \
+    && apt-get install -qq --yes --no-install-recommends \
+        autoconf \
+        automake \
+        build-essential \
+        git \
+        libkrb5-dev \
+        libsodium-dev \
+        libtool \
+        pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# libzmq
+WORKDIR /opt
+RUN git clone https://github.com/zeromq/libzmq.git
+WORKDIR /opt/libzmq
+RUN git checkout v4.3.4
+RUN ./autogen.sh \
+    && ./configure --prefix=/usr/local --with-libsodium --with-libgssapi_krb5 \
+    && make \
+    && make check \
+    && make install
+RUN apt-get update -qq \
+    && apt-get install -qq --yes --no-install-recommends \
+        libkrb5-dev \
+        libsodium23 \
+    && rm -rf /var/lib/apt/lists/*
+RUN ldconfig && ldconfig -p | grep libzmq
+
+WORKDIR /opt
+RUN git clone https://github.com/zeromq/cppzmq.git
+WORKDIR /opt/cppzmq
+RUN git checkout v4.8.0
+WORKDIR /opt/cppzmq/build
+RUN cmake .. \
+    && make install
+# ZMQ Setup - done
+
+RUN ( \
+    echo 'LogLevel DEBUG2'; \
+    echo 'PermitRootLogin yes'; \
+    echo 'PasswordAuthentication yes'; \
+    echo 'Subsystem sftp /usr/lib/openssh/sftp-server'; \
+  ) > /etc/ssh/sshd_config_test_clion \
+  && mkdir /run/sshd
+
+RUN useradd -m user \
+  && yes password | passwd user
+
+RUN usermod -s /bin/bash user
+
+CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]
