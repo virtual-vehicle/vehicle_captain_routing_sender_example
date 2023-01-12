@@ -1,8 +1,8 @@
-# Receiver Demo (CXX)
+# Sender Demo (CXX)
 
-Sample implementation for a receiving cpp client for the vehicleCAPTAIN [routing core](https://github.com/virtual-vehicle/vehicle_captain_routing_core).
+Sample implementation for a sending cpp client for the vehicleCAPTAIN [routing core](https://github.com/virtual-vehicle/vehicle_captain_routing_core).
 
-Sample implementation also shows decoding usage for [vcits](https://github.com/virtual-vehicle/vehicle_captain_its_lib_c_cxx).
+Sample implementation also shows verification and encoding usage for [vcits](https://github.com/virtual-vehicle/vehicle_captain_its_lib_c_cxx).
 
 ## Feature List
 ### Version 1.0
