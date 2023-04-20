@@ -119,7 +119,7 @@ int main(int argc, char* argv[]) {
         zmq_connect_string.append(argv[2]);
         msg_id = atoi(argv[3]);
         frequency_hz = atoi(argv[4]);
-    } else {
+    }  else {
         std::cout << "Usage: " << argv[0] << " <ip> <port> <msg_id> <frequency (1/10Hz)>" << std::endl;
         std::cout << "Message Types:" << std::endl
                   << "ItsPduHeader__messageID_denm = 1" << std::endl
@@ -269,8 +269,30 @@ void create_V2X_msg(zmq::message_t &msg, int msg_id) {
 // dedicated creating functions
 void create_denm(zmq::message_t &msg){
     std::cout << "--- --- --- DENM --- --- ---" << std::endl;
-    if(msg.size() == 0)
-        std::cout << "create_denm(): " << "not yet implemented" << std::endl;
+
+    // variables
+    DENM_t denm;
+    long generationDeltaTime = getGenerationDeltaTime();
+    void *final_denm_buffer = nullptr;
+    ssize_t final_denm_size = 0;
+
+    // reset data structure
+    memset((void *)&denm, 0, sizeof(denm));
+
+    // set header
+    denm.header.protocolVersion = 2; // ?
+    denm.header.messageID = 1;
+    denm.header.stationID = 1111; // ?
+
+
+    if(final_denm_size > 0){
+        std::cout << "DENM created successfully with size " << final_denm_size << std::endl;
+        msg = zmq::message_t(final_denm_buffer, final_denm_size);
+        free(final_denm_buffer);
+    } else {
+        std::cout << std::endl;
+        std::cout << "DENM creation failed - you should probably stop the program" << std::endl;
+    }
 }
 void create_cam(zmq::message_t &msg){
     std::cout << "--- --- --- CAM --- --- ---" << std::endl;
